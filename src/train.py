@@ -15,28 +15,20 @@ class Trainer:
     def train_step(self, inp: tf.Tensor, tar: tf.Tensor) -> Dict[str, tf.Tensor]:
         tar_inp = tar[:, :-1]
         tar_real = tar[:, 1:]
-        
         with tf.GradientTape() as tape:
             predictions = self.model([inp, tar_inp], training=True)
             loss = self.loss_function(tar_real, predictions)
-        
         gradients = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
-        
         self.train_loss(loss)
         self.train_accuracy(tar_real, predictions)
-        
         return {
             'loss': self.train_loss.result(),
             'accuracy': self.train_accuracy.result()
         }
-    
     def loss_function(self, real: tf.Tensor, pred: tf.Tensor) -> tf.Tensor:
         mask = tf.math.logical_not(tf.math.equal(real, 0))
-        
         loss_ = tf.keras.losses.sparse_categorical_crossentropy(real, pred, from_logits=True)
-        
         mask = tf.cast(mask, dtype=loss_.dtype)
         loss_ *= mask
-        
         return tf.reduce_sum(loss_)/tf.reduce_sum(mask)
